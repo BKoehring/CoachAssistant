@@ -10,14 +10,13 @@ import SwiftUI
 struct PlayerListRow: View {
     let playerListCircleRadius: CGFloat = 10.0
     
-    var playerInfo: PlayerManager.PlayerInfo
-    var callBack: () -> Bool
+    @StateObject var playerInfo: PlayerManager.PlayerInfo
+    var callBack: () -> Void
     let minPlaysPerHalf: Int
-    @State private var disable_btn = false
     
     var body: some View {
         Button(action: {
-            disable_btn = callBack()
+            callBack()
         })
         {
             HStack{
@@ -28,7 +27,7 @@ struct PlayerListRow: View {
                 Text("play count: " + String(playerInfo.playCount))
             }
         }
-        .disabled(disable_btn)
+        .disabled(playerInfo.onField)
     }
 }
 
@@ -84,9 +83,9 @@ struct GameHalfSelector: View{
 }
 
 struct PlayerList: View{
-    @State var players: [PlayerManager.PlayerInfo]
+    @Binding var players: [PlayerManager.PlayerInfo]
     let minPlaysPerHalf: Int
-    let callBack: (_: PlayerManager.PlayerInfo) -> Bool
+    let callBack: (_: PlayerManager.PlayerInfo) -> Void
     
     var body: some View{
         VStack {
@@ -123,7 +122,10 @@ struct GameField: View {
     @Binding var playersOnField: [PlayerManager.PlayerInfo]
     @State var minPlaysPerHalf: Int
 
-    @State var showPlayerDetails: Bool = false
+    @State var selectedPlayer: Int = -1
+    
+    var clearField: () -> Void
+    var removePlayer: (Int) -> Void
     
     var body: some View {
         VStack{
@@ -133,7 +135,8 @@ struct GameField: View {
                 Stepper("Play: \(playNum)", value: $playNum, in: 0...999)
                     .padding()
                 Button("Clear Field"){
-                    // remove all players from the field
+                    selectedPlayer = -1
+                    clearField()
                 }
                 .padding()
             }
@@ -144,6 +147,7 @@ struct GameField: View {
                             let playerIndex = PlayerManager.GetIndex(playersInRow: fieldNumPlayersInRow, rowIndex: rowIndex, colIndex: colIndex)
                             Button(action: {
                                 // Show player details
+                                selectedPlayer = playerIndex == selectedPlayer ? -1 : playerIndex
                             })
                             {
                                 if playerIndex < playersOnField.count{
@@ -165,17 +169,18 @@ struct GameField: View {
             VStack{
                 Text("Player Details").padding()
                 HStack {
-                    Text("Name: ")
+                    Text("Name: " + (selectedPlayer > -1 && selectedPlayer < playersOnField.count ? playersOnField[selectedPlayer].playerName : ""))
                     Spacer()
                 }
                 Stepper("Adjust Play Count: \(playNum)", value: $playNum, in: 0...999)
                 Button("Remove From Field"){
-                    
+                    removePlayer(selectedPlayer)
+                    selectedPlayer = -1
                 }.tint(.red)
                 .padding()
             }
             .padding()
-            .opacity(showPlayerDetails ? 1 : 0)
+            .opacity(selectedPlayer != -1 ? 1 : 0)
             Spacer()
         }
         .background(
@@ -198,8 +203,8 @@ struct ContentView: View {
             var halfSelector: some View = GameHalfSelector()
             VStack {
                 HStack{
-                    PlayerList(players: playerManager.allPlayers, minPlaysPerHalf: playerManager.minPlaysPerHalf, callBack: playerManager.AddPlayerToField)
-                    GameField(playersOnField: $playerManager.playersOnField, minPlaysPerHalf: playerManager.minPlaysPerHalf)
+                    PlayerList(players: $playerManager.allPlayers, minPlaysPerHalf: playerManager.minPlaysPerHalf, callBack: playerManager.AddPlayerToField)
+                    GameField(playersOnField: $playerManager.playersOnField, minPlaysPerHalf: playerManager.minPlaysPerHalf, clearField: playerManager.ClearField, removePlayer: playerManager.RemovePlayerFromField)
                 }
             }
         }
