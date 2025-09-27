@@ -77,6 +77,20 @@ final class PlayerManager : ObservableObject {
         playersOnField.removeAll()
     }
     
+    public func IncrementPlay() -> Void {
+        for index in 0..<playersOnField.count {
+            playersOnField[index].playCount += 1
+        }
+    }
+    
+    public func DecrementPlay() -> Void {
+        for index in 0..<playersOnField.count {
+            if playersOnField[index].playCount > 0{
+                playersOnField[index].playCount -= 1
+            }
+        }
+    }
+    
     public static func GetIndex(playersInRow: [Int], rowIndex: Int, colIndex: Int) -> Int{
         var index: Int = 0
         for row in 0..<rowIndex {
