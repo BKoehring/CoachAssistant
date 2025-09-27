@@ -33,10 +33,21 @@ struct PlayerListRow: View {
 
 func GetPlayCountColor(playCount: Int, minPlaysPerHalf: Int) -> Color {
     var color: UIColor
+    let max_g_value: Float = 0.8
+    let max_r_value: Float = 0.8
+    let max_b_value: Float = 0.2
+    let red_drop_off: Float = 10.0
+    let green_increase: Float = 1.0/3.0
     
-    let PlayCountPercent: Float = Float(playCount)/Float(minPlaysPerHalf)
+    var PlayCountPercent: Float = Float(playCount)/Float(minPlaysPerHalf)
+    if PlayCountPercent > 1.0{
+        PlayCountPercent = 1.0
+    }
+    let red: Float = max_r_value - pow(PlayCountPercent, red_drop_off) * max_r_value
+    let green: Float = pow(PlayCountPercent, green_increase) * max_g_value
+    let blue: Float = PlayCountPercent * max_b_value
 
-    color = UIColor(_colorLiteralRed: 1.0 - PlayCountPercent, green: PlayCountPercent, blue: 0.1, alpha: 1.0)
+    color = UIColor(_colorLiteralRed: red, green: green, blue: blue, alpha: 1.0)
     
     return Color(uiColor: color)
 }
@@ -126,14 +137,28 @@ struct GameField: View {
     
     var clearField: () -> Void
     var removePlayer: (Int) -> Void
+    var IncrementPlay: () -> Void
+    var DecrementPlay: () -> Void
     
     var body: some View {
         VStack{
             Text("On The Field").font(.title2)
                 .padding()
             HStack {
-                Stepper("Play: \(playNum)", value: $playNum, in: 0...999)
-                    .padding()
+                Stepper{
+                    Text("Play: \(playNum)")
+                }
+                onIncrement: {
+                    playNum += 1
+                    IncrementPlay()
+                }
+                onDecrement: {
+                    if playNum > 0{
+                        playNum -= 1
+                        DecrementPlay()
+                    }
+                }
+                .padding()
                 Button("Clear Field"){
                     selectedPlayer = -1
                     clearField()
@@ -156,7 +181,7 @@ struct GameField: View {
                                         .background(Circle().fill(GetPlayCountColor(playCount: playersOnField[playerIndex].playCount, minPlaysPerHalf: minPlaysPerHalf)))
                                 }
                                 else{
-                                    Text("Name")
+                                    Text("")
                                         .padding()
                                         .background(Circle().fill(Color.gray))
                                 }
@@ -167,17 +192,19 @@ struct GameField: View {
                 }
             }
             VStack{
-                Text("Player Details").padding()
-                HStack {
-                    Text("Name: " + (selectedPlayer > -1 && selectedPlayer < playersOnField.count ? playersOnField[selectedPlayer].playerName : ""))
-                    Spacer()
+                if selectedPlayer > -1 && selectedPlayer < playersOnField.count {
+                    Text("Player Details").padding()
+                    HStack {
+                        Text("Name: " + playersOnField[selectedPlayer].playerName)
+                        Spacer()
+                    }
+                    Stepper("Adjust Play Count: \(playersOnField[selectedPlayer].playCount)", value: $playersOnField[selectedPlayer].playCount, in: 0...999)
+                    Button("Remove From Field"){
+                        removePlayer(selectedPlayer)
+                        selectedPlayer = -1
+                    }.tint(.red)
+                        .padding()
                 }
-                Stepper("Adjust Play Count: \(playNum)", value: $playNum, in: 0...999)
-                Button("Remove From Field"){
-                    removePlayer(selectedPlayer)
-                    selectedPlayer = -1
-                }.tint(.red)
-                .padding()
             }
             .padding()
             .opacity(selectedPlayer != -1 ? 1 : 0)
@@ -204,7 +231,9 @@ struct ContentView: View {
             VStack {
                 HStack{
                     PlayerList(players: $playerManager.allPlayers, minPlaysPerHalf: playerManager.minPlaysPerHalf, callBack: playerManager.AddPlayerToField)
-                    GameField(playersOnField: $playerManager.playersOnField, minPlaysPerHalf: playerManager.minPlaysPerHalf, clearField: playerManager.ClearField, removePlayer: playerManager.RemovePlayerFromField)
+                    GameField(playersOnField: $playerManager.playersOnField, minPlaysPerHalf: playerManager.minPlaysPerHalf, clearField: playerManager.ClearField, removePlayer: playerManager.RemovePlayerFromField,
+                        IncrementPlay: playerManager.IncrementPlay,
+                        DecrementPlay: playerManager.DecrementPlay)
                 }
             }
         }
