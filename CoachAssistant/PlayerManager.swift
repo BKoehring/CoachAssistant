@@ -13,11 +13,15 @@ final class PlayerManager : ObservableObject {
     public class PlayerInfo : Identifiable, ObservableObject{
         let id = UUID()
         var playerName: String = "Missing"
+        var playerNumber: String = "Missing"
+        var playerPosition: String = "Missing"
         @Published var playCount: Int = 0
         @Published var onField: Bool = false
         
-        public init(name: String){
+        public init(name: String, number: String, position: String){
             playerName = name
+            playerNumber = number
+            playerPosition = position
         }
         
         static func ==(lhs: PlayerInfo, rhs: PlayerInfo) -> Bool {
@@ -25,36 +29,37 @@ final class PlayerManager : ObservableObject {
         }
     }
     
-    public init(){
-        allPlayers.append(PlayerInfo(name: "Brandon"))
-        allPlayers.append(PlayerInfo(name: "Puka"))
-        allPlayers.append(PlayerInfo(name: "Matt"))
-        allPlayers.append(PlayerInfo(name: "Marshall"))
-        allPlayers.append(PlayerInfo(name: "Cooper"))
-        allPlayers.append(PlayerInfo(name: "Jared"))
-        allPlayers.append(PlayerInfo(name: "Byron"))
-        allPlayers.append(PlayerInfo(name: "Turner"))
-        allPlayers.append(PlayerInfo(name: "Durant"))
-        allPlayers.append(PlayerInfo(name: "Kyren"))
-        allPlayers.append(PlayerInfo(name: "Blake"))
-        allPlayers.append(PlayerInfo(name: "Josh"))
-        allPlayers.append(PlayerInfo(name: "Fiske"))
-        allPlayers.append(PlayerInfo(name: "Witherspoon"))
-        allPlayers.append(PlayerInfo(name: "Cobie"))
-        allPlayers.append(PlayerInfo(name: "Nacua"))
-        allPlayers.append(PlayerInfo(name: "Stafford"))
-        allPlayers.append(PlayerInfo(name: "Higbee"))
-        allPlayers.append(PlayerInfo(name: "Davante"))
-        allPlayers.append(PlayerInfo(name: "Adams"))
-        allPlayers.append(PlayerInfo(name: "Tutu"))
-        allPlayers.append(PlayerInfo(name: "Atwell"))
-        allPlayers.append(PlayerInfo(name: "Verse"))
-        allPlayers.append(PlayerInfo(name: "Stewert"))
-    }
-    
     @Published var allPlayers = [PlayerInfo]()
     @Published var playersOnField = [PlayerInfo]()
     @Published var minPlaysPerHalf: Int = 7
+    
+    func readInPlayers(result: Result<[URL], any Error>) -> Void{
+        allPlayers.removeAll()
+        var data = ""
+        do{
+            let files = try result.get()
+            if files[0].startAccessingSecurityScopedResource() {
+                data = try String(contentsOf: files[0], encoding: String.Encoding.ascii)
+            }
+        }
+        catch {
+            print("Error: \(error)")
+        }
+        
+        var rows = data.components(separatedBy: "\n")
+        rows.removeFirst()
+        for row in rows {
+            let columns = row.components(separatedBy: ",")
+            print(columns)
+            if columns.count == 3{
+                AddPlayerToList(player: PlayerInfo(name: columns[0], number: columns[1], position: columns[2]))
+            }
+        }
+    }
+    
+    public func AddPlayerToList(player: PlayerInfo) -> Void {
+        allPlayers.append(player)
+    }
     
     public func AddPlayerToField(player: PlayerInfo) -> Void {
         if playersOnField.count < TotalPlayersAllowOnField {

@@ -52,7 +52,21 @@ func GetPlayCountColor(playCount: Int, minPlaysPerHalf: Int) -> Color {
     return Color(uiColor: color)
 }
 
+struct PlayerCircle: View {
+    let radius: CGFloat = 60.0
+    var playerNumber: String
+    var circleColor: Color
+    
+    var body: some View {
+        Text(playerNumber)
+            .padding()
+            .background(Circle().fill(circleColor).frame(width: radius, height: radius))
+    }
+}
+
 struct GameMenu: View {
+    @Binding var documentPickerToggle: Bool
+    
     var body: some View {
         HStack {
             Menu("Edit") {
@@ -67,6 +81,7 @@ struct GameMenu: View {
                 }
                 Button("Import Players"){
                     // Import players
+                    documentPickerToggle.toggle()
                 }
                 Button("Setting"){
                     // Open Settings
@@ -127,6 +142,7 @@ struct PlayerList: View{
 
 struct GameField: View {
     let fieldNumPlayersInRow = [4, 3, 4]
+    let circle_radius: Int = 100
     
     @State var playNum: Int = 0
 
@@ -176,14 +192,10 @@ struct GameField: View {
                             })
                             {
                                 if playerIndex < playersOnField.count{
-                                    Text(playersOnField[playerIndex].playerName)
-                                        .padding()
-                                        .background(Circle().fill(GetPlayCountColor(playCount: playersOnField[playerIndex].playCount, minPlaysPerHalf: minPlaysPerHalf)))
+                                    PlayerCircle(playerNumber: playersOnField[playerIndex].playerNumber, circleColor: GetPlayCountColor(playCount: playersOnField[playerIndex].playCount, minPlaysPerHalf: minPlaysPerHalf)).padding()
                                 }
                                 else{
-                                    Text("")
-                                        .padding()
-                                        .background(Circle().fill(Color.gray))
+                                    PlayerCircle(playerNumber: "", circleColor: Color.gray).padding()
                                 }
                             }
                             .buttonStyle(PlainButtonStyle())
@@ -193,9 +205,18 @@ struct GameField: View {
             }
             VStack{
                 if selectedPlayer > -1 && selectedPlayer < playersOnField.count {
+                    let player = playersOnField[selectedPlayer]
                     Text("Player Details").padding()
                     HStack {
-                        Text("Name: " + playersOnField[selectedPlayer].playerName)
+                        Text("Name: " + player.playerName)
+                        Spacer()
+                    }
+                    HStack{
+                        Text("#" + player.playerNumber)
+                        Spacer()
+                    }
+                    HStack{
+                        Text("Position: " + player.playerPosition)
                         Spacer()
                     }
                     Stepper("Adjust Play Count: \(playersOnField[selectedPlayer].playCount)", value: $playersOnField[selectedPlayer].playCount, in: 0...999)
@@ -221,10 +242,11 @@ struct GameField: View {
 struct ContentView: View {
     
     @StateObject var playerManager = PlayerManager()
+    @State var documentPickerToggle = false
     
     var body: some View {
         VStack {
-            GameMenu()
+            GameMenu(documentPickerToggle: $documentPickerToggle)
             Text("Coach Assistant").font(.title)
                 .padding()
             var halfSelector: some View = GameHalfSelector()
@@ -236,6 +258,7 @@ struct ContentView: View {
                         DecrementPlay: playerManager.DecrementPlay)
                 }
             }
+            .fileImporter(isPresented: $documentPickerToggle, allowedContentTypes: [.commaSeparatedText], allowsMultipleSelection: false, onCompletion: playerManager.readInPlayers)
         }
         .padding()
     }
