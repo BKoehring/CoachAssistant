@@ -14,14 +14,12 @@ final class PlayerManager : ObservableObject {
         let id = UUID()
         var playerName: String = "Missing"
         var playerNumber: String = "Missing"
-        var playerPosition: String = "Missing"
         @Published var playCountForHalf: [Int] = [0, 0]
         @Published var onField: Bool = false
         
-        public init(name: String, number: String, position: String){
+        public init(name: String, number: String){
             playerName = name
             playerNumber = number
-            playerPosition = position
         }
         
         static func ==(lhs: PlayerInfo, rhs: PlayerInfo) -> Bool {
@@ -47,13 +45,13 @@ final class PlayerManager : ObservableObject {
             print("Error: \(error)")
         }
         
-        var rows = data.components(separatedBy: "\n")
-        rows.removeFirst()
+        let rows = data.components(separatedBy: "\n")
         for row in rows {
             let columns = row.components(separatedBy: ",")
-            print(columns)
-            if columns.count == 3{
-                AddPlayerToList(player: PlayerInfo(name: columns[0], number: columns[1], position: columns[2]))
+            if columns.count == 2{
+                if !columns[0].isEmpty {
+                    AddPlayerToList(player: PlayerInfo(name: columns[0], number: columns[1].components(separatedBy: CharacterSet.decimalDigits.inverted).joined()))
+                }
             }
         }
     }

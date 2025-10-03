@@ -215,11 +215,7 @@ struct GameField: View {
                         Spacer()
                     }
                     HStack{
-                        Text("#" + player.playerNumber)
-                        Spacer()
-                    }
-                    HStack{
-                        Text("Position: " + player.playerPosition)
+                        Text("# " + player.playerNumber)
                         Spacer()
                     }
                     Stepper("Adjust Play Count: \(playersOnField[selectedPlayer].playCountForHalf[half])", value: $playersOnField[selectedPlayer].playCountForHalf[half], in: 0...999)
