@@ -15,7 +15,7 @@ final class PlayerManager : ObservableObject {
         var playerName: String = "Missing"
         var playerNumber: String = "Missing"
         var playerPosition: String = "Missing"
-        @Published var playCount: Int = 0
+        @Published var playCountForHalf: [Int] = [0, 0]
         @Published var onField: Bool = false
         
         public init(name: String, number: String, position: String){
@@ -32,6 +32,7 @@ final class PlayerManager : ObservableObject {
     @Published var allPlayers = [PlayerInfo]()
     @Published var playersOnField = [PlayerInfo]()
     @Published var minPlaysPerHalf: Int = 7
+    @Published var playCountForHalf: [Int] = [0, 0]
     
     func readInPlayers(result: Result<[URL], any Error>) -> Void{
         allPlayers.removeAll()
@@ -82,16 +83,16 @@ final class PlayerManager : ObservableObject {
         playersOnField.removeAll()
     }
     
-    public func IncrementPlay() -> Void {
+    public func IncrementPlay(half: Int) -> Void {
         for index in 0..<playersOnField.count {
-            playersOnField[index].playCount += 1
+            playersOnField[index].playCountForHalf[half] += 1
         }
     }
     
-    public func DecrementPlay() -> Void {
+    public func DecrementPlay(half: Int) -> Void {
         for index in 0..<playersOnField.count {
-            if playersOnField[index].playCount > 0{
-                playersOnField[index].playCount -= 1
+            if playersOnField[index].playCountForHalf[half] > 0{
+                playersOnField[index].playCountForHalf[half] -= 1
             }
         }
     }

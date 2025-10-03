@@ -13,6 +13,7 @@ struct PlayerListRow: View {
     @StateObject var playerInfo: PlayerManager.PlayerInfo
     var callBack: () -> Void
     let minPlaysPerHalf: Int
+    let half: Int
     
     var body: some View {
         Button(action: {
@@ -20,11 +21,11 @@ struct PlayerListRow: View {
         })
         {
             HStack{
-                Circle().fill(GetPlayCountColor(playCount: playerInfo.playCount, minPlaysPerHalf: minPlaysPerHalf))
+                Circle().fill(GetPlayCountColor(playCount: playerInfo.playCountForHalf[half], minPlaysPerHalf: minPlaysPerHalf))
                     .frame(width: playerListCircleRadius, height: playerListCircleRadius)
                 Text(playerInfo.playerName)
                 Spacer()
-                Text("play count: " + String(playerInfo.playCount))
+                Text("play count: " + String(playerInfo.playCountForHalf[half]))
             }
         }
         .disabled(playerInfo.onField)
@@ -95,14 +96,14 @@ struct GameMenu: View {
 
 struct GameHalfSelector: View{
     
-    @State var half: Int = 1
+    @Binding var half: Int
     
     var body: some View{
         HStack {
             Text("Half")
             Picker(selection: $half, label: Text("Half")) {
-                Text("1st").tag(1)
-                Text("2nd").tag(2)
+                Text("1st").tag(0)
+                Text("2nd").tag(1)
             }
             Spacer()
         }.padding()    }
@@ -112,6 +113,7 @@ struct PlayerList: View{
     @Binding var players: [PlayerManager.PlayerInfo]
     let minPlaysPerHalf: Int
     let callBack: (_: PlayerManager.PlayerInfo) -> Void
+    let half: Int
     
     var body: some View{
         VStack {
@@ -134,7 +136,7 @@ struct PlayerList: View{
                 }
             }.padding()
             List(players) { player in
-                PlayerListRow(playerInfo: player, callBack: {callBack(player)}, minPlaysPerHalf: minPlaysPerHalf)
+                PlayerListRow(playerInfo: player, callBack: {callBack(player)}, minPlaysPerHalf: minPlaysPerHalf, half: half)
             }
         }.padding()
     }
@@ -143,8 +145,9 @@ struct PlayerList: View{
 struct GameField: View {
     let fieldNumPlayersInRow = [4, 3, 4]
     let circle_radius: Int = 100
+    let half: Int
     
-    @State var playNum: Int = 0
+    @Binding var playNum: Int
 
     @Binding var playersOnField: [PlayerManager.PlayerInfo]
     @State var minPlaysPerHalf: Int
@@ -192,7 +195,7 @@ struct GameField: View {
                             })
                             {
                                 if playerIndex < playersOnField.count{
-                                    PlayerCircle(playerNumber: playersOnField[playerIndex].playerNumber, circleColor: GetPlayCountColor(playCount: playersOnField[playerIndex].playCount, minPlaysPerHalf: minPlaysPerHalf)).padding()
+                                    PlayerCircle(playerNumber: playersOnField[playerIndex].playerNumber, circleColor: GetPlayCountColor(playCount: playersOnField[playerIndex].playCountForHalf[half], minPlaysPerHalf: minPlaysPerHalf)).padding()
                                 }
                                 else{
                                     PlayerCircle(playerNumber: "", circleColor: Color.gray).padding()
@@ -219,7 +222,7 @@ struct GameField: View {
                         Text("Position: " + player.playerPosition)
                         Spacer()
                     }
-                    Stepper("Adjust Play Count: \(playersOnField[selectedPlayer].playCount)", value: $playersOnField[selectedPlayer].playCount, in: 0...999)
+                    Stepper("Adjust Play Count: \(playersOnField[selectedPlayer].playCountForHalf[half])", value: $playersOnField[selectedPlayer].playCountForHalf[half], in: 0...999)
                     Button("Remove From Field"){
                         removePlayer(selectedPlayer)
                         selectedPlayer = -1
@@ -243,19 +246,20 @@ struct ContentView: View {
     
     @StateObject var playerManager = PlayerManager()
     @State var documentPickerToggle = false
+    @State var half: Int = 0
     
     var body: some View {
         VStack {
             GameMenu(documentPickerToggle: $documentPickerToggle)
             Text("Coach Assistant").font(.title)
                 .padding()
-            var halfSelector: some View = GameHalfSelector()
+            GameHalfSelector(half: $half)
             VStack {
                 HStack{
-                    PlayerList(players: $playerManager.allPlayers, minPlaysPerHalf: playerManager.minPlaysPerHalf, callBack: playerManager.AddPlayerToField)
-                    GameField(playersOnField: $playerManager.playersOnField, minPlaysPerHalf: playerManager.minPlaysPerHalf, clearField: playerManager.ClearField, removePlayer: playerManager.RemovePlayerFromField,
-                        IncrementPlay: playerManager.IncrementPlay,
-                        DecrementPlay: playerManager.DecrementPlay)
+                    PlayerList(players: $playerManager.allPlayers, minPlaysPerHalf: playerManager.minPlaysPerHalf, callBack: playerManager.AddPlayerToField, half: half)
+                    GameField(half: half, playNum: $playerManager.playCountForHalf[half], playersOnField: $playerManager.playersOnField, minPlaysPerHalf: playerManager.minPlaysPerHalf, clearField: playerManager.ClearField, removePlayer: playerManager.RemovePlayerFromField,
+                        IncrementPlay: {playerManager.IncrementPlay(half: half)},
+                        DecrementPlay: {playerManager.DecrementPlay(half: half)})
                 }
             }
             .fileImporter(isPresented: $documentPickerToggle, allowedContentTypes: [.commaSeparatedText], allowsMultipleSelection: false, onCompletion: playerManager.readInPlayers)
